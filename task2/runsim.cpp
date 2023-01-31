@@ -9,6 +9,7 @@
 
 int main(int argc, char* argv[]) {
   size_t threads = 0;
+
   try {
     threads = std::stoul(argv[1]);
   } catch (const std::exception &ex) {
@@ -20,6 +21,12 @@ int main(int argc, char* argv[]) {
 
   data::Command command{};
   while (std::getline(std::cin, command.cmd)) {
-    tp.AddTask(data::CommandLauncher(std::make_unique<data::Command>(command)));
+    if (!tp.AddTask(
+            data::CommandLauncher(std::make_unique<data::Command>(command)))) {
+      std::cout << "Cannot start more than " << threads << " tasks"
+                << std::endl;
+    }
   }
+
+  return 0;
 }
