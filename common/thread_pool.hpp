@@ -41,12 +41,10 @@ public:
   }
 
   bool AddTask(Callable&& task) {
-    //std::cout << "try add task" << std::endl;
     if (!waiters_.fetch_sub(1)) {
       waiters_.fetch_add(1);
 
       if (policy_ == OverflowPolicy::kReject) {
-        //std::cout << "failed add task" << std::endl;
         return false;
       }
     }
@@ -54,11 +52,8 @@ public:
     {
       std::unique_lock lock(wait_for_task_mt_);
       tasks_.push(std::move(task));
-      //std::cout << "added task" << std::endl;
-      //std::cout << "size " << tasks_.size() << std::endl;
     }
 
-    //std::cout << "notify" << std::endl;
     wait_for_task_cv_.notify_one();
     return true;
   }
@@ -66,7 +61,6 @@ public:
   bool Started() const { return waiters_.load() == size_; }
 
   ~ThreadPool() {
-    //std::cout << "destructor" << std::endl;
     WaitForTasks();
     Terminate();
   }
@@ -85,26 +79,26 @@ private:
     }
   }
 
-
   void ThreadTask() {
     while (!terminate_) {
       waiters_.fetch_add(1);
 
-      std::unique_lock lock(wait_for_task_mt_);
+      Callable task;
+      {
+        std::unique_lock lock(wait_for_task_mt_);
 
-      wait_for_task_cv_.wait(lock,
-                             [this] { return !tasks_.empty() || terminate_; });
+        wait_for_task_cv_.wait(
+            lock, [this] { return !tasks_.empty() || terminate_; });
 
-      if (tasks_.empty()) {
-        //std::cout << "skip" << std::endl;
-        continue;
+        if (tasks_.empty()) {
+          continue;
+        }
+
+        task = std::move(tasks_.front());
+        tasks_.pop();
       }
 
-      auto task{std::move(tasks_.front())};
-      tasks_.pop();
-
       if (!terminate_) {
-        //std::cout << "Start" << std::endl;
         task();
         wait_end_cv_.notify_one();
       }

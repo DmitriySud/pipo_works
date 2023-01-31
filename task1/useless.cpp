@@ -86,8 +86,8 @@ int main(int argc, char *argv[]) {
       usleep(chrono::duration_cast<chrono::microseconds>(delta).count());
     }
 
+    auto time = data::GetTime();
     tp.AddTask(data::CommandLauncher(std::move(it)));
-    // std::cout.flush();
 
     records.pop();
   }
