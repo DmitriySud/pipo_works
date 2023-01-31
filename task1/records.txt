@@ -1,0 +1,5 @@
+1 echo "I was first"
+10 echo "I was last"
+2 echo "I was poseredine"
+4 cat --help
+1 echo "I was first too...."
