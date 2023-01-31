@@ -92,11 +92,5 @@ int main(int argc, char *argv[]) {
     records.pop();
   }
 
-  tp.WaitForTasks();
-  tp.Terminate();
-
-  std::cout << "Finish process records" << std::endl;
-
-
   return 0;
 }

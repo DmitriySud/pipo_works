@@ -34,20 +34,6 @@ public:
       ;
   }
 
-  void Terminate() {
-    {
-      std::unique_lock lock(wait_for_task_mt_);
-      terminate_.store(true);
-    }
-
-    wait_for_task_cv_.notify_all();
-
-    for (std::thread& thread : threads_) {
-      thread.join();
-    }
-  }
-
-
   void WaitForTasks() {
     std::unique_lock lock(wait_end_mt_);
 
@@ -81,9 +67,25 @@ public:
 
   ~ThreadPool() {
     //std::cout << "destructor" << std::endl;
+    WaitForTasks();
+    Terminate();
   }
 
 private:
+  void Terminate() {
+    {
+      std::unique_lock lock(wait_for_task_mt_);
+      terminate_.store(true);
+    }
+
+    wait_for_task_cv_.notify_all();
+
+    for (std::thread& thread : threads_) {
+      thread.join();
+    }
+  }
+
+
   void ThreadTask() {
     while (!terminate_) {
       waiters_.fetch_add(1);
