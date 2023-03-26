@@ -40,7 +40,7 @@ int main(int argc, char** argv) {
 
   int* ptr = static_cast<int*>(shmat(shmid, NULL, 0));
   *ptr = 0;
-  uint32_t sem_val;
+  uint32_t sem_val = threads;
   sem_t* sem_ptr = sem_open("pSemaphore", O_CREAT | O_EXCL, 0644, sem_val);
 
   int next;
