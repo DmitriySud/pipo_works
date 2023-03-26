@@ -14,6 +14,7 @@ int main(int argc, char* argv[]) {
     threads = std::stoul(argv[1]);
   } catch (const std::exception &ex) {
     std::cerr << "Cannot parse number of threads " << ex.what() << std::endl;
+    return 0;
   }
 
   thread_pool::ThreadPool<data::CommandLauncher> tp{
