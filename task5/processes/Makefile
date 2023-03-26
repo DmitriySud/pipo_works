@@ -1,9 +1,9 @@
-include ../Makefile.common
+include ../../Makefile.common
 
 all: build run
 
 build:
-	$(CXX) useless.cpp $(CXXFLAGS) -o useless -I$(SOURCES)/..
+	$(CXX) factorial.cpp $(SOURCES)/../../common/big_integer.cpp $(CXXFLAGS) -o factorial -I$(SOURCES)/../..
 
 run: 
-	./useless records.txt
+	./factorial 4
