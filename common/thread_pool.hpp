@@ -11,6 +11,8 @@
 #include <iostream>
 #include <cassert>
 
+#include "task.hpp"
+
 namespace thread_pool {
 
 enum class OverflowPolicy {
@@ -20,6 +22,8 @@ enum class OverflowPolicy {
 template <typename Callable>
 class ThreadPool {
 public:
+  using TaskPtr =std::shared_ptr<Task<Callable>>; 
+
   ThreadPool(size_t size, OverflowPolicy policy)
       : size_(size), policy_(policy) {
 
@@ -40,22 +44,25 @@ public:
     wait_end_cv_.wait(lock, [this]() { return tasks_.empty(); });
   }
 
-  bool AddTask(Callable&& task) {
+  TaskPtr AddTask(Callable&& task) {
     if (!waiters_.fetch_sub(1)) {
       waiters_.fetch_add(1);
 
       if (policy_ == OverflowPolicy::kReject) {
-        return false;
+        return nullptr;
       }
     }
 
+    TaskPtr res {nullptr};
     {
       std::unique_lock lock(wait_for_task_mt_);
-      tasks_.push(std::move(task));
+      TaskWrapper<Callable> wrapper(std::move(task));
+      res = wrapper.GetPtr();
+      tasks_.push(std::move(wrapper));
     }
 
     wait_for_task_cv_.notify_one();
-    return true;
+    return res;
   }
 
   bool Started() const { return waiters_.load() == size_; }
@@ -83,7 +90,7 @@ private:
     while (!terminate_) {
       waiters_.fetch_add(1);
 
-      Callable task;
+      TaskWrapper<Callable> wrapper;
       {
         std::unique_lock lock(wait_for_task_mt_);
 
@@ -94,12 +101,12 @@ private:
           continue;
         }
 
-        task = std::move(tasks_.front());
+        wrapper = std::move(tasks_.front());
         tasks_.pop();
       }
 
       if (!terminate_) {
-        task();
+        wrapper.GetPtr()->Execute();
         wait_end_cv_.notify_one();
       }
     }
@@ -109,7 +116,11 @@ private:
   OverflowPolicy policy_;
 
   std::vector<std::thread> threads_;
-  std::queue<Callable> tasks_;
+
+  // Use same approach as std::unordered_map. We have to use wrapper because
+  // std::queue has paged-vector as underlying type and pointers to it's items
+  // can be invalidated.
+  std::queue<TaskWrapper<Callable>> tasks_;
 
   std::atomic<int> waiters_;
   std::atomic<bool> terminate_{false};
